@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Scanner;
 
 import com.google.gson.Gson;
@@ -17,12 +15,7 @@ import com.google.gson.JsonParser;
 
 public class WordsRemember {
 
-	static Calendar cal = Calendar.getInstance();	
 	static Gson gson = new Gson();
-	static SimpleDateFormat sdf = new SimpleDateFormat("MM-dd-yy");
-	static SimpleDateFormat sdf2 = new SimpleDateFormat("MM/dd/yy");
-	static SimpleDateFormat sdf3 = new SimpleDateFormat("yyyy/MM/dd");
-	static StringBuffer allWordsAppend = new StringBuffer("");	
 
 	public static void main(String[] args) throws IOException, InterruptedException {
 		FileWriter fw = new FileWriter("WordsQuery", true);
