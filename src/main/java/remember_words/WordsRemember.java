@@ -18,32 +18,42 @@ public class WordsRemember {
 	static Gson gson = new Gson();
 
 	public static void main(String[] args) throws IOException, InterruptedException {
+		String opt = "init";
 		FileWriter fw = new FileWriter("WordsQuery", true);
 		Scanner s = new Scanner(System.in);
 		String word;
 		out: while (true) {
-			System.out.println("Input word :");
-			word = s.nextLine();
+			if (opt.equals("init") || opt.equals("")) {
+				System.out.println("Input word :");
+				word = s.nextLine();
+			} else {
+				word = opt;
+			}
+
+			opt = "init";
+
 			if (word.equals("q"))
 				break;
 
 			String[] arr = WordsRemember.getDefine(word);
-			
-			if(arr[0].equals("")){		
-				System.out.println(arr[1].equals("NULL")?"Found No Meanings!":arr[1].trim().replaceAll(" ", "\n"));
+
+			if (arr[0].equals("")) {
+				System.out.println(arr[1].equals("NULL") ? "Found No Meanings!" : arr[1].trim().replaceAll(" ", "\n"));
 				continue;
 			}
 
-			System.out.println(
-					arr[0] + "\n" + arr[1].trim().replaceAll(" ", "\n") + "\nPress ENTER->append, SPACE->skip, q->quit:");
-			switch (s.nextLine()) {
-			case " ":
-				continue;
+			System.out.println(arr[0] + "\n" + arr[1].trim().replaceAll(" ", "\n")
+					+ "\nPress ENTER->append, Another Word->next, q->quit:");
+			opt = s.nextLine();
+			switch (opt) {
 			case "q":
 				break out;
 			case "":
 				fw.append(word + "\t" + arr[0] + "\t" + arr[1] + "\n");
 				break;
+			default:
+
+				continue;
 			}
 		}
 		s.close();
@@ -69,6 +79,10 @@ public class WordsRemember {
 		JsonObject jsonObject = new JsonParser().parse(responseBody).getAsJsonObject();
 
 		JsonObject baesInfo = jsonObject.getAsJsonObject("baesInfo");
+
+		if (baesInfo == null) {
+			return new String[] { "", "NULL" };
+		}
 
 		JsonArray symbols = baesInfo.getAsJsonArray("symbols");
 
