@@ -1,41 +1,54 @@
 package remember_words;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.Scanner;
 
-import com.google.gson.Gson;
+import org.bson.Document;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 
-public class WordsRemember {
+public class Application {
 
-	static Gson gson = new Gson();
+	public static void main(String[] args) throws IOException {
+		SimpleDateFormat sdf = new SimpleDateFormat("yy-MM-dd HH:mm:ss");
 
-	public static void main(String[] args) throws IOException, InterruptedException {
+		List<Document> wordList = new ArrayList<>();
 		String opt = "init";
-		FileWriter fw = new FileWriter("WordsQuery", true);
 		Scanner s = new Scanner(System.in);
-		String word;
+		String word_id;
 		out: while (true) {
 			if (opt.equals("init") || opt.equals("")) {
 				System.out.println("Input word :");
-				word = s.nextLine();
+				word_id = s.nextLine();
 			} else {
-				word = opt;
+				word_id = opt;
 			}
 
 			opt = "init";
 
-			if (word.equals("q"))
+			if (word_id.equals("q"))
 				break;
 
-			String[] arr = WordsRemember.getDefine(word);
+			if (!word_id.matches("[a-zA-Z]*")) {
+				System.out.println(translate(word_id));
+				continue;
+			}
+
+			String[] arr = getDefine(word_id);
 
 			if (arr[0].equals("")) {
 				System.out.println(arr[1].equals("NULL") ? "Found No Meanings!" : arr[1].trim().replaceAll(" ", "\n"));
@@ -49,15 +62,26 @@ public class WordsRemember {
 			case "q":
 				break out;
 			case "":
-				fw.append(word + "\t" + arr[0] + "\t" + arr[1] + "\n");
+				Document d = new Document();
+				d.put("word_id", word_id);
+				d.put("symbol", arr[0]);
+				d.put("meaning", arr[1]);
+				d.put("create_time", sdf.format(new Date()));
+				wordList.add(d);
 				break;
 			default:
-
 				continue;
 			}
 		}
 		s.close();
-		fw.close();
+		if (!wordList.isEmpty()) {
+			MongoClientURI uri = new MongoClientURI("mongodb://holden:testonly@ds227939.mlab.com:27939/holden_remote");
+			MongoClient mongoClient = new MongoClient(uri);
+			MongoDatabase mongoDatabase = mongoClient.getDatabase("holden_remote");
+			MongoCollection<Document> collection = mongoDatabase.getCollection("word");
+			collection.insertMany(wordList);
+			mongoClient.close();
+		}
 
 	}
 
@@ -114,6 +138,31 @@ public class WordsRemember {
 
 		return new String[] { ph_am, sb.toString().replaceAll("，", ",").replaceAll("（", "(").replaceAll("）", ")")
 				.replaceAll("〈", "<").replaceAll("〉", ">").replaceAll("、", ",") };
+	}
+
+	static String translate(String chineseWord) throws IOException {
+
+		String url = "http://fy.iciba.com/ajax.php?a=fy&f=zh&t=en&w=";
+		String charset = "UTF-8";
+
+		HttpURLConnection connection = (HttpURLConnection) new URL(url + chineseWord).openConnection();
+		connection.setRequestProperty("Accept-Charset", charset);
+		InputStream response = connection.getInputStream();
+
+		Scanner scanner = new Scanner(response);
+		String responseBody = scanner.useDelimiter("\\A").next();
+		scanner.close();
+
+		JsonObject jsonObject = new JsonParser().parse(responseBody).getAsJsonObject();
+
+		JsonObject content = jsonObject.getAsJsonObject("content");
+
+		JsonElement out = content.get("out");
+		if (out == null) {
+			return "No Result";
+		}
+
+		return out.getAsString();
 
 	}
 
